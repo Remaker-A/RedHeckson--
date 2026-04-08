@@ -10,34 +10,51 @@
 从后到前，共 7 层：
 
 ```
-┌────────────────────────────────────────────┐
-│ ⑦ UI层      气泡 / 导航栏 / 标题           │  ← HTML/CSS
-│ ⑥ 光效层    营灯光晕 / 篝火 / 串灯          │  ← CSS + Lottie
-│ ⑤ 角色层    角色不同状态                     │  ← PNG切图，JS切换
-│ ④ 物件层    书/咖啡/纸条/毯子等              │  ← PNG切图，按状态显隐
-│ ③ 帐篷层    帐篷壳体 + 营灯（固定结构）      │  ← 1张PNG
-│ ② 平台层    木平台 + 周边装饰（草坪/雪地等）  │  ← 按主题切换的PNG
-│ ① 背景层    纯色/渐变 + 虚化光斑             │  ← 纯CSS
-└────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│ ⑥ UI层      气泡 / 导航栏 / 标题                   │  ← HTML/CSS
+│ ⑤ 角色层    角色不同状态                             │  ← PNG切图，JS切换
+│ ④ 物件层    书/咖啡/纸条/毯子等                      │  ← PNG切图，按状态显隐
+│ ③ 帐篷层    帐篷壳体+营灯（一张图）+ CSS光效叠加     │  ← 1张PNG + CSS
+│ ② 平台层    木平台 + 周边装饰（草坪/雪地等）          │  ← 按主题切换的PNG
+│ ① 背景层    纯色/渐变 + 虚化光斑                     │  ← 纯CSS
+└────────────────────────────────────────────────────┘
 ```
+
+**核心原则：切图按"物理结构"分，光效用CSS叠加到对应图层上，不单独成层。**
+
+- 帐篷+营灯 = 一张图（营灯是帐篷结构的一部分）
+- 灯光光晕 = CSS叠在帐篷层上
+- 篝火底座 = 物件层切图，火焰 = CSS/Lottie叠在物件层上
+- 角色阴影 = CSS叠在角色层下方
 
 在页面中的对应关系：
 
 ```html
 <div class="scene">
   <div class="layer-bg"></div>              <!-- ① CSS背景 -->
+
   <img class="layer-platform" />            <!-- ② 平台+周边 -->
-  <img class="layer-tent" />                <!-- ③ 帐篷壳体 -->
-  <div class="layer-props">                 <!-- ④ 物件容器 -->
-    <img class="prop" />
-    <img class="prop" />
+
+  <div class="layer-tent">                  <!-- ③ 帐篷 -->
+    <img class="tent-img" />                <!--    帐篷+营灯一张图 -->
+    <div class="lantern-glow"></div>        <!--    CSS灯光光晕 -->
+    <div class="tent-inner-shadow"></div>   <!--    CSS帐篷内部暖光 -->
   </div>
-  <img class="layer-character" />           <!-- ⑤ 角色 -->
-  <div class="layer-effects">              <!-- ⑥ 光效 -->
-    <div class="lantern-glow"></div>
-    <div class="campfire-lottie"></div>
+
+  <div class="layer-props">                 <!-- ④ 物件 -->
+    <img class="prop" />
+    <div class="campfire-wrap">             <!--    篝火=底座图+CSS火焰 -->
+      <img class="prop-firewood" />
+      <div class="fire-effect"></div>
+    </div>
   </div>
-  <div class="layer-ui">                   <!-- ⑦ UI -->
+
+  <div class="layer-character">             <!-- ⑤ 角色 -->
+    <div class="char-shadow"></div>         <!--    CSS角色阴影 -->
+    <img class="char-img" />               <!--    角色切图 -->
+  </div>
+
+  <div class="layer-ui">                   <!-- ⑥ UI -->
     <div class="speech-bubble"></div>
   </div>
 </div>
@@ -143,9 +160,9 @@ lighting. Miniature diorama style. Isometric perspective.
 
 ---
 
-### ③ 帐篷层 — 固定结构，只切一次
+### ③ 帐篷层 — 壳体+营灯一张图，光效CSS叠加
 
-帐篷壳体是所有状态共用的，不需要多版本。
+帐篷和营灯是一个物理结构，**切成一张图**。灯光效果、帐篷内部暖光、阴影全部用CSS叠在这张图上。
 
 #### 切图要求
 
@@ -153,10 +170,13 @@ lighting. Miniature diorama style. Isometric perspective.
 文件名：tent-shell.png
 输出格式：PNG，透明背景
 画布尺寸：750 x 700（@2x）
-内容：只有帐篷的布/骨架/绳子 + 营灯（挂在帐篷顶部的灯）
-不包含：角色、物件、平台
+内容：帐篷布/骨架/绳子/帐篷帘子 + 营灯（含灯体本身的发光质感）
+不包含：角色、可变物件、平台
 
-关键：帐篷内部要留空（透明），角色和物件会从后面叠上来。
+关键：
+  · 营灯在渲染图里就带着它自身的发光感（灯体是亮的），这是素材的一部分
+  · 帐篷内部留空（透明），角色和物件从后面露出
+  · 帐篷壁上如果有固定的光影（灯照出来的布面明暗），保留在图里
 ```
 
 #### 切图示意
@@ -165,17 +185,129 @@ lighting. Miniature diorama style. Isometric perspective.
          ┌───────────────────────────┐
          │         🔺帐篷顶          │
          │        ╱    ╲             │
-         │       ╱  🏮  ╲           │  ← 营灯跟帐篷一起切
-         │      ╱        ╲          │
-         │     ╱  (透明)   ╲        │  ← 内部留空！
-         │    ╱             ╲       │
+         │       ╱  🏮  ╲           │  ← 营灯是帐篷的一部分，一起切
+         │      ╱  灯本身  ╲         │     灯体自带发光质感（素材自带）
+         │     ╱  带光感的  ╲        │
+         │    ╱   (透明)    ╲       │  ← 内部留空
          │   ┃    (透明)     ┃      │  ← 角色和物件从这里露出
          │   ┃  帐篷帘子边缘  ┃      │
          │                           │
          └───────────────────────────┘
 ```
 
-实操建议：从完整渲染图中抠出帐篷，**用蒙版擦掉内部区域**，只保留帐篷布、柱子、绳子、营灯。
+实操建议：从完整渲染图中抠出帐篷，**用蒙版擦掉内部区域**，只保留帐篷布、柱子、绳子、营灯。营灯本身的发光部分（灯罩里的亮光）保留，这是素材的一部分。
+
+#### CSS光效叠加（叠在帐篷层上）
+
+以下效果不需要切图，用CSS叠在帐篷图之上：
+
+**A. 营灯光晕扩散（呼吸动效）**
+
+营灯素材自带灯体发光，但向外扩散的光晕用CSS做，可以呼吸脉动：
+
+```css
+.lantern-glow {
+  position: absolute;
+  /* 定位到帐篷图中营灯的位置 */
+  top: 22%;
+  left: 48%;
+  width: 180px;
+  height: 180px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle,
+    rgba(255, 180, 60, 0.45) 0%,
+    rgba(255, 150, 30, 0.2) 35%,
+    rgba(255, 120, 20, 0.05) 60%,
+    transparent 80%
+  );
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: glow-breathe 3.5s ease-in-out infinite;
+}
+
+@keyframes glow-breathe {
+  0%, 100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); }
+}
+
+/* 深夜态：光晕更暖更集中 */
+[data-status="night"] .lantern-glow {
+  background: radial-gradient(circle,
+    rgba(255, 160, 40, 0.6) 0%,
+    rgba(255, 120, 20, 0.3) 30%,
+    transparent 65%
+  );
+}
+
+/* 打盹态：光晕很弱 */
+[data-status="sleep"] .lantern-glow {
+  opacity: 0.25;
+  animation: glow-breathe 5s ease-in-out infinite;
+}
+
+/* 落灰态：几乎没有光 */
+[data-status="away"] .lantern-glow {
+  opacity: 0.08;
+  animation: none;
+}
+```
+
+**B. 帐篷内部暖光（渲染帐篷布面的光照感）**
+
+给帐篷内部区域叠一层暖色半透明渐变，模拟灯光照亮帐篷布的效果：
+
+```css
+.tent-inner-glow {
+  position: absolute;
+  top: 15%;
+  left: 20%;
+  width: 60%;
+  height: 50%;
+  background: radial-gradient(ellipse at 50% 30%,
+    rgba(255, 200, 100, 0.15) 0%,
+    transparent 70%
+  );
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+  transition: opacity 1.5s ease;
+}
+
+/* 不同状态调整内部光强度 */
+[data-status="day"] .tent-inner-glow   { opacity: 0.6; }
+[data-status="night"] .tent-inner-glow { opacity: 1; }
+[data-status="sleep"] .tent-inner-glow { opacity: 0.2; }
+[data-status="away"] .tent-inner-glow  { opacity: 0.05; }
+```
+
+**C. 角色投射阴影（CSS叠在角色层下方）**
+
+```css
+.char-shadow {
+  position: absolute;
+  bottom: -5%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 15px;
+  background: radial-gradient(ellipse,
+    rgba(60, 40, 20, 0.25) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+}
+```
+
+**D. 物件投射阴影（通用）**
+
+所有物件统一加一个轻微的底部阴影：
+
+```css
+.prop {
+  filter: drop-shadow(0 4px 6px rgba(60, 40, 20, 0.2));
+}
+```
 
 #### 帐篷帘子（可选，P1）
 
@@ -290,24 +422,27 @@ across all renders.
 
 ---
 
-### ⑥ 光效层 — 不需要切图（极少数例外）
+### CSS光效速查（不需要切图，叠加到对应图层上）
 
-| 效果 | 实现方式 | 是否需要素材 |
-|------|---------|------------|
-| 营灯光晕 | CSS `radial-gradient` + `mix-blend-mode: screen` | 不需要 |
-| 篝火火焰 | Lottie JSON（LottieFiles下载） | 1个Lottie文件 |
-| 串灯闪烁 | CSS `box-shadow` + animation | 不需要 |
-| 咖啡热气 | CSS伪元素 + animation | 不需要 |
-| 月亮+星星 | CSS | 不需要 |
-| 光斑虚化 | CSS `radial-gradient` + `filter: blur` | 不需要 |
+光效不再是独立的层，而是叠加在对应的素材图层上：
 
-唯一可能需要素材的：篝火。两种方案都可以：
-- **方案A**：Lottie JSON（推荐，文件小，效果好）
-- **方案B**：APNG序列（备选，如果不想引入Lottie库）
+| 效果 | 叠在哪一层上 | 实现方式 | 是否需要素材 |
+|------|------------|---------|------------|
+| 营灯光晕扩散 | ③帐篷层 | CSS `radial-gradient` + `mix-blend-mode: screen` | 不需要 |
+| 帐篷内部暖光 | ③帐篷层 | CSS `radial-gradient` + `mix-blend-mode: soft-light` | 不需要 |
+| 角色阴影 | ⑤角色层下方 | CSS `radial-gradient` 椭圆 | 不需要 |
+| 物件阴影 | ④物件层 | CSS `filter: drop-shadow()` | 不需要 |
+| 篝火火焰 | ④物件层（柴火图上方） | Lottie JSON 或 CSS animation | Lottie需要1个JSON |
+| 咖啡热气 | ④物件层（咖啡杯上方） | CSS伪元素 + animation | 不需要 |
+| 串灯闪烁 | ③帐篷层或②平台层 | CSS `box-shadow` + animation | 不需要 |
+| 月亮+星星 | ①背景层 | CSS | 不需要 |
+| 背景虚化光斑 | ①背景层 | CSS `radial-gradient` + `filter: blur` | 不需要 |
+
+**完整CSS代码见上方③帐篷层章节。**
 
 ---
 
-### ⑦ UI层 — 不需要切图（图标除外）
+### ⑥ UI层 — 不需要切图（图标除外）
 
 底部导航栏的图标需要切图或使用icon font：
 
@@ -323,15 +458,15 @@ across all renders.
 
 ## 三、状态组合表
 
-不同状态下，各层的组合：
+不同状态下，各层的组合（CSS光效跟随状态自动变化）：
 
-| 状态 | 背景(①) | 平台(②) | 帐篷(③) | 物件(④) | 角色(⑤) | 光效(⑥) |
-|------|---------|---------|---------|---------|---------|---------|
-| **白天·陪伴** | 暖白渐变 | grass | 通用 | 书+咖啡+纸条+背包 | idle/reading | 灯晕(亮) |
-| **深夜·陪伴** | 深蓝渐变 | grass | 通用 | 书+咖啡+纸条+背包+柴火 | reading | 灯晕(亮)+篝火+月亮星星 |
-| **打盹** | 暖白偏暗 | grass | 通用 | 毯子+背包 | sleeping | 灯晕(暗) |
-| **落灰·等你** | 灰冷渐变 | grass(降饱和度) | 通用 | 背包 | waiting | 灯晕(极暗) |
-| **冬日** | 冷白渐变 | snow | 通用 | 书+咖啡+围巾 | idle | 灯晕(亮)+串灯 |
+| 状态 | 背景(①) | 平台(②) | 帐篷(③)图+CSS | 物件(④) | 角色(⑤) |
+|------|---------|---------|--------------|---------|---------|
+| **白天·陪伴** | 暖白渐变 | grass | 通用图 + 灯晕亮 + 内光强 | 书+咖啡+纸条+背包 | idle/reading |
+| **深夜·陪伴** | 深蓝+月亮星星 | grass | 通用图 + 灯晕暖亮 + 内光最强 | 书+咖啡+纸条+背包+柴火(+CSS火焰) | reading |
+| **打盹** | 暖白偏暗 | grass | 通用图 + 灯晕暗 + 内光弱 | 毯子+背包 | sleeping |
+| **落灰·等你** | 灰冷渐变 | grass(CSS降饱和度) | 通用图 + 灯晕极暗 + 内光几乎无 | 背包 | waiting |
+| **冬日** | 冷白渐变 | snow | 通用图 + 灯晕亮 + 内光强 | 书+咖啡+围巾 | idle |
 
 ---
 
