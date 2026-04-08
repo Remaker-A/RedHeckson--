@@ -1,0 +1,139 @@
+/* ====== Design System ====== */
+:root {
+  /* Colors */
+  --bg-dark: #2A2520;
+  --bg-darker: #1E1A16;
+  --bg-cream: #F5F0EB;
+  --accent-warm: #E8A04C;
+  --accent-warm-dim: rgba(232, 160, 76, 0.15);
+  --accent-warm-glow: rgba(232, 160, 76, 0.4);
+  --night-blue: #3A4B6B;
+  --text-warm: #3D3530;
+  --text-light: #C8BEB4;
+  --text-muted: #8A7E74;
+  --paper-yellow: #F2E8D5;
+  --success-soft: #7DB88F;
+  --danger-soft: #C47474;
+
+  /* Typography */
+  --font-display: 'ZCOOL KuaiLe', cursive;
+  --font-body: 'Noto Sans SC', -apple-system, 'PingFang SC', sans-serif;
+  --font-mono: 'Courier New', monospace;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+
+  /* Transitions */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 200ms;
+  --duration-normal: 400ms;
+  --duration-slow: 800ms;
+  --duration-dramatic: 1600ms;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+}
+
+/* ====== Reset ====== */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  font-weight: 300;
+  background: var(--bg-dark);
+  color: var(--text-light);
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+input,
+textarea,
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border: none;
+  outline: none;
+  background: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ====== Utility ====== */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--duration-slow) var(--ease-out-expo);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all var(--duration-slow) var(--ease-out-expo);
+}
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(30px);
+}
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* Breathe animation for tent glow */
+@keyframes breathe {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px var(--accent-warm-dim); }
+  50% { box-shadow: 0 0 40px var(--accent-warm-glow); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: var(--radius-full);
+}

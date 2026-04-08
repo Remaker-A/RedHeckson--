@@ -1,1 +1,25 @@
 .DS_Store
+Thumbs.db
+
+# --- companion-agent: secrets ---
+companion-agent/backend/.env
+
+# --- companion-agent: Python ---
+companion-agent/**/__pycache__/
+companion-agent/**/*.py[cod]
+companion-agent/**/.pytest_cache/
+companion-agent/**/.venv/
+companion-agent/**/venv/
+
+# --- companion-agent: Node / Vite ---
+companion-agent/frontend/node_modules/
+companion-agent/frontend/dist/
+companion-agent/frontend/.vite/
+companion-agent/frontend/tsconfig.tsbuildinfo
+companion-agent/frontend/*.local
+
+# --- companion-agent: runtime / local data (语料 corpus 仍纳入版本) ---
+companion-agent/backend/data/*.jsonl
+companion-agent/backend/data/soul.json
+companion-agent/backend/data/personality.json
+companion-agent/backend/data/chat_digest_state.json
