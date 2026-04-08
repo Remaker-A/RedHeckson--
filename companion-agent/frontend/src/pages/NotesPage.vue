@@ -20,7 +20,11 @@ interface DisplayNote {
   time: string
   author: 'agent' | 'user'
   color: string
+  sortKey: number
 }
+
+// Local user messages (not returned by API, stored locally)
+const userMessages = ref<DisplayNote[]>([])
 
 const moods = [
   { value: 'calm', emoji: '😌', label: '平静' },
@@ -42,16 +46,17 @@ function formatTime(iso: string) {
 }
 
 const displayNotes = computed<DisplayNote[]>(() => {
-  const agentNotes = store.notes.map(n => ({
+  const agentNotes: DisplayNote[] = store.notes.map(n => ({
     id: n.id,
     content: n.content,
     date: formatDate(n.created_at),
     time: formatTime(n.created_at),
     author: 'agent' as const,
-    color: 'cream',
+    color: 'yellow',
     sortKey: new Date(n.created_at).getTime(),
   }))
-  return agentNotes.sort((a, b) => b.sortKey - a.sortKey)
+  const all = [...agentNotes, ...userMessages.value]
+  return all.sort((a, b) => b.sortKey - a.sortKey)
 })
 
 onMounted(async () => {
@@ -67,6 +72,17 @@ async function submitNote() {
   sendingNote.value = true
   try {
     await store.sendMessageWithMood(text, selectedMood.value || undefined)
+    // Add user message to local display immediately
+    const now = new Date()
+    userMessages.value.unshift({
+      id: `user-${Date.now()}`,
+      content: text,
+      date: formatDate(now.toISOString()),
+      time: formatTime(now.toISOString()),
+      author: 'user',
+      color: 'blue',
+      sortKey: now.getTime(),
+    })
     sentFeedback.value = true
     setTimeout(() => {
       noteText.value = ''
@@ -276,17 +292,25 @@ function selectMood(mood: string) {
   transform: scale(0.98);
 }
 
-/* Agent notes - warm paper */
+/* Agent notes - yellow paper */
 .sticky-note.agent {
-  background: linear-gradient(135deg, #3D3530 0%, #342E28 100%);
-  border: 1px solid rgba(232, 160, 76, 0.1);
+  background: linear-gradient(135deg, #F2E8D5 0%, #EBE0CC 100%);
+  border: 1px solid rgba(200, 180, 140, 0.3);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
 }
-/* User notes - colored */
+.sticky-note.agent .note-date { color: #A09080; }
+.sticky-note.agent .note-content { color: #4A3F35; }
+.sticky-note.agent .note-sign { color: #B0A090; }
+
+/* User notes - soft blue */
 .sticky-note.user {
-  background: linear-gradient(135deg, #3A3530 0%, #352F28 100%);
-  border: 1px solid rgba(255, 220, 150, 0.1);
-  border-left: 3px solid var(--accent-warm);
+  background: linear-gradient(135deg, #D8E8F5 0%, #CEDBE8 100%);
+  border: 1px solid rgba(140, 170, 200, 0.3);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
 }
+.sticky-note.user .note-date { color: #8098B0; }
+.sticky-note.user .note-content { color: #3A4A5A; }
+.sticky-note.user .note-sign { color: #90A8C0; }
 
 .note-pin {
   position: absolute;

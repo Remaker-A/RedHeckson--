@@ -350,10 +350,11 @@ function onCharacterTap() {
 /* ═══════ Character Layer ═══════ */
 .character-layer {
   position: absolute;
-  top: 30%;
+  /* Position inside the tent opening - on the plaid blanket area */
+  top: 38%;
   left: 50%;
-  transform: translateX(-50%);
-  width: 28%;
+  transform: translateX(-55%);
+  width: 22%;
   z-index: 5;
 }
 .character-img {
@@ -361,30 +362,30 @@ function onCharacterTap() {
   height: auto;
   display: block;
   animation: char-breathe 4s ease-in-out infinite;
-  filter: drop-shadow(0 4px 8px rgba(60, 40, 20, 0.2));
+  filter: drop-shadow(0 3px 6px rgba(60, 40, 20, 0.25));
 }
 @keyframes char-breathe {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  50% { transform: translateY(-2px); }
 }
 .character-shadow {
   position: absolute;
-  bottom: -6px;
+  bottom: -4px;
   left: 50%;
   transform: translateX(-50%);
-  width: 70%;
-  height: 10px;
-  background: radial-gradient(ellipse, rgba(60, 40, 20, 0.2) 0%, transparent 70%);
+  width: 80%;
+  height: 8px;
+  background: radial-gradient(ellipse, rgba(60, 40, 20, 0.15) 0%, transparent 70%);
   border-radius: 50%;
 }
 
 /* ═══════ Light Effects ═══════ */
 .lantern-glow {
   position: absolute;
-  top: 18%;
-  left: 52%;
-  width: 140px;
-  height: 140px;
+  top: 25%;
+  left: 45%;
+  width: 120px;
+  height: 120px;
   transform: translate(-50%, -50%);
   background: radial-gradient(circle,
     rgba(255, 180, 60, 0.4) 0%,
