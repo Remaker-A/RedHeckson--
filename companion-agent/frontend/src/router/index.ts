@@ -5,7 +5,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/tent',
+      redirect: '/home',
     },
     {
       path: '/soul',
@@ -13,9 +13,22 @@ const router = createRouter({
       component: () => import('../pages/SoulCreation.vue'),
     },
     {
-      path: '/tent',
-      name: 'TentRoom',
-      component: () => import('../pages/TentRoom.vue'),
+      path: '/home',
+      name: 'Home',
+      component: () => import('../pages/HomePage.vue'),
+      meta: { tab: true },
+    },
+    {
+      path: '/notes',
+      name: 'Notes',
+      component: () => import('../pages/NotesPage.vue'),
+      meta: { tab: true },
+    },
+    {
+      path: '/me',
+      name: 'Me',
+      component: () => import('../pages/MePage.vue'),
+      meta: { tab: true },
     },
     {
       path: '/settings',
