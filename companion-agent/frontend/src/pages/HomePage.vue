@@ -172,10 +172,6 @@ function onCharacterTap() {
           />
         </div>
 
-        <!-- Status text -->
-        <p class="status-text">
-          {{ store.room?.details?.description || '帐篷里亮着灯' }}
-        </p>
 
       </div>
 
@@ -417,21 +413,6 @@ function onCharacterTap() {
   mix-blend-mode: screen;
 }
 
-/* ═══════ Status Text ═══════ */
-.status-text {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  text-align: center;
-  letter-spacing: 0.04em;
-  margin-top: var(--space-md);
-  opacity: 0.7;
-  max-width: 280px;
-  line-height: 1.6;
-}
-.home-page.night .status-text {
-  color: var(--text-light);
-  opacity: 0.5;
-}
 
 /* ═══════ Loading ═══════ */
 .loading-state {
