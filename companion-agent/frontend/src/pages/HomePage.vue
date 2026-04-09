@@ -41,11 +41,26 @@ const characterImage = computed(() => {
   return '/assets/character/char-sleeping.png'
 })
 
+const sceneVideo = computed(() => {
+  // Use video if available, fall back to image
+  if (isNight.value) return '/assets/video/night-reading.mp4'
+  return '/assets/video/day-idle.mp4'
+})
+
 const sceneImage = computed(() => {
   return isNight.value
     ? '/assets/scene/scene-night-cutout.png'
     : '/assets/scene/scene-day-cutout.png'
 })
+
+// Check which videos exist
+const hasVideo = ref(false)
+function checkVideoAvailable() {
+  const video = document.createElement('video')
+  video.src = sceneVideo.value
+  video.onloadeddata = () => { hasVideo.value = true }
+  video.onerror = () => { hasVideo.value = false }
+}
 
 const lightIntensity = computed(() => {
   const light = store.room?.details?.light ?? 'warm'
@@ -69,6 +84,7 @@ onMounted(async () => {
     store.fetchPersonality(),
   ])
   loaded.value = true
+  checkVideoAvailable()
 
   // Initial speech
   try {
@@ -140,36 +156,47 @@ function onCharacterTap() {
 
         <!-- Scene wrapper -->
         <div class="scene-wrapper" @click="onCharacterTap">
-          <!-- Scene image (tent + platform) -->
-          <img
-            :src="sceneImage"
-            alt="帐篷场景"
-            class="scene-img"
-            draggable="false"
+
+          <!-- Video mode (when video available) -->
+          <video
+            v-if="hasVideo"
+            :src="sceneVideo"
+            autoplay loop muted playsinline webkit-playsinline
+            class="scene-video"
           />
 
-          <!-- Character overlay -->
-          <div class="character-layer">
+          <!-- Image fallback (when no video) -->
+          <template v-else>
             <img
-              :src="characterImage"
-              alt="角色"
-              class="character-img"
+              :src="sceneImage"
+              alt="帐篷场景"
+              class="scene-img"
               draggable="false"
             />
-            <div class="character-shadow" />
-          </div>
 
-          <!-- Lantern glow -->
-          <div
-            class="lantern-glow"
-            :style="{ opacity: lightIntensity * 0.7 }"
-          />
+            <!-- Character overlay (only for image mode, video already has character) -->
+            <div class="character-layer">
+              <img
+                :src="characterImage"
+                alt="角色"
+                class="character-img"
+                draggable="false"
+              />
+              <div class="character-shadow" />
+            </div>
 
-          <!-- Inner tent warm light -->
-          <div
-            class="tent-inner-glow"
-            :style="{ opacity: lightIntensity * 0.5 }"
-          />
+            <!-- Lantern glow (only for image mode) -->
+            <div
+              class="lantern-glow"
+              :style="{ opacity: lightIntensity * 0.7 }"
+            />
+
+            <!-- Inner tent warm light (only for image mode) -->
+            <div
+              class="tent-inner-glow"
+              :style="{ opacity: lightIntensity * 0.5 }"
+            />
+          </template>
         </div>
 
 
@@ -332,6 +359,19 @@ function onCharacterTap() {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Video mode */
+.scene-video {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius-lg);
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.15));
+}
+.home-page.night .scene-video {
+  filter: drop-shadow(0 20px 60px rgba(232, 160, 76, 0.15));
+}
+
+/* Image fallback mode */
 .scene-img {
   width: 100%;
   height: auto;
