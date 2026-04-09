@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from api import companion, focus, message, note, personality, room, simulate, soul, status
+from api import companion, desktop, focus, footprint, message, note, personality, room, simulate, soul, status
 from api.ws import ws_manager
 from core.scheduler import scheduler
 from core.state_machine import state_machine
@@ -47,6 +47,8 @@ app.include_router(note.router)
 app.include_router(focus.router)
 app.include_router(message.router)
 app.include_router(simulate.router)
+app.include_router(desktop.router)
+app.include_router(footprint.router)
 
 
 async def _on_state_change(event: StateEvent):

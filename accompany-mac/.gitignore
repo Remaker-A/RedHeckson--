@@ -23,7 +23,3 @@ companion-agent/backend/data/*.jsonl
 companion-agent/backend/data/soul.json
 companion-agent/backend/data/personality.json
 companion-agent/backend/data/chat_digest_state.json
-companion-agent/backend/data/desktop_context.json
-
-# accompany-mac: nested copy of companion-agent (canonical tree is repo-root companion-agent/)
-accompany-mac/companion-agent/

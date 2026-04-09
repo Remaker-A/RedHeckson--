@@ -14,6 +14,7 @@ from storage.models import (
     Personality,
     Rhythm,
     Soul,
+    SoulEvolutionEntry,
 )
 
 logger = logging.getLogger(__name__)
@@ -172,10 +173,19 @@ class RelationshipDigester:
                 changed = True
 
         if changed:
+            from core.evolution_summary import build_evolution_summary
+
             personality.version += 1
             reason = (pa.get("reason") or "").strip() or (rel.get("signals") or "").strip()
             if len(reason) > 200:
                 reason = reason[:200] + "…"
+            snap = dict(personality.params.model_dump(mode="json"))
+            summary_zh, context_hint = build_evolution_summary(
+                params_snapshot=snap,
+                prev_snapshot=None,
+                digest_result=result,
+                event_type="dialogue_digest",
+            )
             personality.evolution_log.append(
                 EvolutionLogEntry(
                     day=rhythm.days_together if rhythm else 0,
@@ -183,31 +193,59 @@ class RelationshipDigester:
                         f"digest: owl={p.night_owl_index}, anx={p.anxiety_sensitivity}, "
                         f"quiet={p.quietness}, play={p.playfulness}, attach={p.attachment_level}"
                     ),
-                    reason=f"conversation_digest: {reason or '对话整理'}",
+                    reason=reason or "对话整理",
                     timestamp=datetime.now(),
+                    personality_version=personality.version,
+                    event_type="dialogue_digest",
+                    params_snapshot=snap,
+                    summary_zh=summary_zh,
+                    context_hint=context_hint,
                 )
             )
         return changed
 
     def _merge_user_snapshot(self, soul: Soul, snap: dict) -> bool:
         changed = False
+        now = datetime.now()
+
         w = snap.get("current_state_word")
-        if isinstance(w, str) and w.strip():
+        if isinstance(w, str) and w.strip() and w.strip() != soul.current_state_word:
+            old = soul.current_state_word
             soul.current_state_word = w.strip()
+            soul.evolution_log.append(SoulEvolutionEntry(
+                timestamp=now, field="current_state_word",
+                old_value=old, new_value=w.strip(),
+            ))
             changed = True
+
         s = snap.get("struggle")
-        if isinstance(s, str) and s.strip():
+        if isinstance(s, str) and s.strip() and s.strip() != soul.struggle:
+            old = soul.struggle
             soul.struggle = s.strip()
+            soul.evolution_log.append(SoulEvolutionEntry(
+                timestamp=now, field="struggle",
+                old_value=old, new_value=s.strip(),
+            ))
             changed = True
+
         facts = snap.get("facts")
         if isinstance(facts, str) and facts.strip():
             f = facts.strip()
             existing = (soul.user_facts or "").strip()
             if not existing:
                 soul.user_facts = f
+                soul.evolution_log.append(SoulEvolutionEntry(
+                    timestamp=now, field="user_facts",
+                    old_value="", new_value=f,
+                ))
                 changed = True
             elif f not in existing:
+                old = existing
                 soul.user_facts = f"{existing}；{f}"
+                soul.evolution_log.append(SoulEvolutionEntry(
+                    timestamp=now, field="user_facts",
+                    old_value=old, new_value=soul.user_facts,
+                ))
                 changed = True
         return changed
 

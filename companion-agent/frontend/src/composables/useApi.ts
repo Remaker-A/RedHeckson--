@@ -78,6 +78,7 @@ export interface PersonalityData {
     night_owl_index: number
     anxiety_sensitivity: number
     quietness: number
+    playfulness: number
     attachment_level: number
   }
   natural_description: string
@@ -87,7 +88,64 @@ export interface PersonalityData {
     change: string
     reason: string
     timestamp: string
+    personality_version?: number
+    event_type?: string
+    params_snapshot?: Record<string, unknown>
   }>
+}
+
+export interface FootprintParamDelta {
+  key: string
+  label: string
+  delta: number
+  before: number
+  after: number
+}
+
+export interface FootprintEvent {
+  id: string
+  kind: 'personality' | 'soul'
+  timestamp: string
+  event_type: string
+  label_zh: string
+  day?: number
+  personality_version?: number | null
+  change?: string
+  reason?: string
+  params_snapshot?: Record<string, unknown>
+  param_deltas: FootprintParamDelta[]
+  soul_field?: string
+  soul_field_label?: string
+  old_value?: string
+  new_value?: string
+  summary?: string
+  context_hint?: string
+}
+
+export interface FootprintOverview {
+  soul_created_at: string
+  days_together: number
+  personality_version: number
+  current_state_word: string
+  struggle: string
+  user_facts: string
+  params: Record<string, unknown>
+}
+
+export interface FootprintTrendPoint {
+  timestamp: string
+  personality_version?: number | null
+  params: Record<string, unknown>
+}
+
+export interface FootprintTimelineResponse {
+  overview: FootprintOverview
+  events: FootprintEvent[]
+  trend_series: FootprintTrendPoint[]
+}
+
+export function getFootprintTimeline() {
+  return request<FootprintTimelineResponse>('GET', '/api/footprint/timeline')
 }
 
 export function getPersonality() {
@@ -213,4 +271,51 @@ export interface FastForwardResult {
 
 export function simFastForward(days = 7, late_night_ratio = 0.3, focus_ratio = 0.4) {
   return request<FastForwardResult>('POST', '/api/sim/fast-forward', { days, late_night_ratio, focus_ratio })
+}
+
+/* ---------- Desktop (Mac 上报 L4，前端拉取展示) ---------- */
+
+export interface AppUsageRecord {
+  app_name: string
+  bundle_id: string
+  duration_minutes: number
+  category: string
+}
+
+export interface DesktopSnapshot {
+  timestamp: string
+  frontmost_app: string
+  frontmost_category: string
+  window_title_hint: string
+  activity_summary: string
+  hourly_usage: AppUsageRecord[]
+  app_switch_count_last_hour: number
+  screen_time_today_minutes: number
+}
+
+export interface DesktopContextData {
+  updated_at: string
+  current_snapshot: DesktopSnapshot
+  daily_top_apps: AppUsageRecord[]
+  avg_daily_screen_time_minutes: number
+  work_pattern: string
+}
+
+/** 原始桌面上下文（与 Mac POST 写入一致） */
+export function getDesktopContext() {
+  return request<DesktopContextData>('GET', '/api/desktop/context')
+}
+
+/** 聚合结果：结构化 + 可读摘要，适合页面一次请求展示 */
+export interface DesktopSummary {
+  ok: boolean
+  has_desktop: boolean
+  context: DesktopContextData
+  formatted: string
+  work_pattern: string
+  work_pattern_label_zh: string
+}
+
+export function getDesktopSummary() {
+  return request<DesktopSummary>('GET', '/api/desktop/summary')
 }

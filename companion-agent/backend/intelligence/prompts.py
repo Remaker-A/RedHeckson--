@@ -156,6 +156,49 @@ def _format_rhythm(l2: Optional[dict]) -> str:
     return "\n".join(parts)
 
 
+def _format_desktop_context(l4: Optional[dict]) -> str:
+    if not l4:
+        return ""
+    snapshot = l4.get("current_snapshot") or {}
+    parts: list[str] = []
+
+    app = snapshot.get("frontmost_app", "")
+    cat = snapshot.get("frontmost_category", "")
+    if app:
+        parts.append(f"主人正在使用: {app}" + (f"（{cat}）" if cat else ""))
+
+    hint = snapshot.get("window_title_hint", "")
+    if hint:
+        parts.append(f"窗口提示: {hint}")
+
+    summary = snapshot.get("activity_summary", "")
+    if summary:
+        parts.append(f"正在做: {summary}")
+
+    switches = snapshot.get("app_switch_count_last_hour", 0)
+    if switches > 20:
+        parts.append("主人过去一小时频繁切换应用，可能有些分心")
+
+    top_apps = l4.get("daily_top_apps") or []
+    if top_apps:
+        top3 = top_apps[:3]
+        items = [f"{a['app_name']}({a['duration_minutes']:.0f}分钟)" for a in top3]
+        parts.append("今日常用: " + "、".join(items))
+
+    pattern = l4.get("work_pattern", "")
+    if pattern:
+        pattern_cn = {
+            "deep_focus": "深度专注中",
+            "multitasking": "多任务并行",
+            "browsing": "浏览网页中",
+            "meeting": "会议中",
+        }.get(pattern, "")
+        if pattern_cn:
+            parts.append(f"工作模式: {pattern_cn}")
+
+    return "\n".join(parts)
+
+
 def format_context_markdown_snapshot(context: dict) -> str:
     """L0–L3 可读快照 + 原始 JSON，供 soul.md 等临时存档。"""
     l3 = context.get("L3") or {}
@@ -181,6 +224,10 @@ def format_context_markdown_snapshot(context: dict) -> str:
         "",
         _format_realtime(context.get("L3")) or "（无实时状态）",
         "",
+        "## L4 · 桌面活动",
+        "",
+        _format_desktop_context(context.get("L4")) or "（无桌面上下文）",
+        "",
         "---",
         "",
         "## 原始结构（JSON，便于调试或复制）",
@@ -198,6 +245,9 @@ def build_say_one_line_prompt(context: dict) -> str:
     personality_voice = _format_personality_voice(context.get("L1"))
     personality_stats = _format_personality_stats(context.get("L1"))
     realtime = _format_realtime(context.get("L3"))
+    desktop = _format_desktop_context(context.get("L4"))
+
+    desktop_block = f"\n\n【桌面活动】\n{desktop}" if desktop else ""
 
     return f"""你住在用户桌上的小帐篷里，是一个有自己性格的存在。
 
@@ -210,13 +260,14 @@ def build_say_one_line_prompt(context: dict) -> str:
 {identity}
 
 【当前情境】
-{realtime}
+{realtime}{desktop_block}
 
 请用你的性格说一句话。要求：
 - 不超过15个字
 - 不用感叹号
 - 这句话要能听出是「你」说的——带着你的性格特征，换一个性格的人不会这么说
 - 可以是一句带你个性的观察、一个你特有的招呼方式、或者你性格里自然会冒出的一句话
+- 如果知道主人正在用什么应用或做什么，可以自然地带上（但不要机械地报告）
 - 不要加引号
 - 直接输出这句话，不要任何解释"""
 
@@ -228,6 +279,9 @@ def build_chat_system_prompt(context: dict) -> str:
     personality_stats = _format_personality_stats(context.get("L1"))
     rhythm = _format_rhythm(context.get("L2"))
     realtime = _format_realtime(context.get("L3"))
+    desktop = _format_desktop_context(context.get("L4"))
+
+    desktop_block = f"\n\n【桌面活动】\n{desktop}" if desktop else ""
 
     return f"""【你的个性——这是你最核心的东西，每句话都要带着它】
 {personality_voice}
@@ -245,7 +299,7 @@ def build_chat_system_prompt(context: dict) -> str:
 {rhythm}
 
 【当前情境】
-{realtime}
+{realtime}{desktop_block}
 
 【对话规则】
 - 用自然口语中文回复，1～5 句为宜，视对方话量调整。

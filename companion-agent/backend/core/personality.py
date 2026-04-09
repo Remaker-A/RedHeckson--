@@ -75,14 +75,40 @@ class PersonalityEngine:
                     changed = True
 
             if changed:
+                from core.evolution_summary import build_evolution_summary
+
                 personality.version += 1
                 personality.updated_at = datetime.now()
+                snap = dict(personality.params.model_dump(mode="json"))
+                prev = dict(personality.params.model_dump(mode="json"))
+                for field, key in [
+                    ("night_owl_index", "night_owl_delta"),
+                    ("anxiety_sensitivity", "anxiety_delta"),
+                    ("quietness", "quietness_delta"),
+                    ("attachment_level", "attachment_delta"),
+                ]:
+                    d = result.get(key, 0)
+                    if abs(d) > 0.001:
+                        prev[field] = round(snap[field] - d, 3)
+
+                summary_zh, context_hint = build_evolution_summary(
+                    params_snapshot=snap,
+                    prev_snapshot=prev,
+                    llm_reason=result.get("reason", ""),
+                    events_summary=events_summary,
+                    event_type="rhythm_llm",
+                )
                 personality.evolution_log.append(EvolutionLogEntry(
                     day=rhythm.days_together if rhythm else 0,
                     change=f"LLM: owl={p.night_owl_index}, anx={p.anxiety_sensitivity}, "
                            f"quiet={p.quietness}, attach={p.attachment_level}",
                     reason=result.get("reason", "LLM analysis"),
                     timestamp=datetime.now(),
+                    personality_version=personality.version,
+                    event_type="rhythm_llm",
+                    params_snapshot=snap,
+                    summary_zh=summary_zh,
+                    context_hint=context_hint,
                 ))
             return changed
 
@@ -122,14 +148,27 @@ class PersonalityEngine:
                     changed = True
 
         if changed:
+            from core.evolution_summary import build_evolution_summary
+
             personality.version += 1
             personality.updated_at = datetime.now()
+            snap = dict(personality.params.model_dump(mode="json"))
+            summary_zh, context_hint = build_evolution_summary(
+                params_snapshot=snap,
+                prev_snapshot=None,
+                event_type="rhythm_rule",
+            )
             personality.evolution_log.append(EvolutionLogEntry(
                 day=rhythm.days_together if rhythm else 0,
                 change=f"rule: owl={p.night_owl_index}, anx={p.anxiety_sensitivity}, "
                        f"quiet={p.quietness}, attach={p.attachment_level}",
                 reason="rule-based periodic update",
                 timestamp=datetime.now(),
+                personality_version=personality.version,
+                event_type="rhythm_rule",
+                params_snapshot=snap,
+                summary_zh=summary_zh,
+                context_hint=context_hint,
             ))
 
     async def _generate_description(self, personality: Personality) -> str:

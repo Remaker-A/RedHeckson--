@@ -6,7 +6,7 @@ from typing import Optional
 
 from core.state_machine import state_machine
 from storage.file_store import file_store
-from storage.models import Personality, Rhythm, Soul
+from storage.models import DesktopContext, Personality, Rhythm, Soul
 
 
 class ContextManager:
@@ -31,9 +31,22 @@ class ContextManager:
     def get_l3(self) -> dict:
         return state_machine.get_status()
 
+    def get_l4(self) -> Optional[dict]:
+        """Desktop context pushed from the Mac companion app."""
+        dc = file_store.load("desktop_context.json", DesktopContext)
+        if not dc:
+            return None
+        return dc.model_dump(mode="json")
+
     def assemble(self, levels: list[int]) -> dict:
         ctx: dict = {}
-        getters = {0: self.get_l0, 1: self.get_l1, 2: self.get_l2, 3: self.get_l3}
+        getters = {
+            0: self.get_l0,
+            1: self.get_l1,
+            2: self.get_l2,
+            3: self.get_l3,
+            4: self.get_l4,
+        }
         for lv in levels:
             getter = getters.get(lv)
             if getter:
@@ -43,10 +56,10 @@ class ContextManager:
         return ctx
 
     def for_say_one_line(self) -> dict:
-        return self.assemble([0, 1, 3])
+        return self.assemble([0, 1, 3, 4])
 
     def for_chat(self) -> dict:
-        return self.assemble([0, 1, 2, 3])
+        return self.assemble([0, 1, 2, 3, 4])
 
     def for_note(self) -> dict:
         return self.assemble([0, 1, 2])

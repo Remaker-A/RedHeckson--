@@ -8,6 +8,7 @@ from fastapi import APIRouter
 
 from mock.hardware_sim import hardware_sim
 from storage.models import (
+    SimDesktopScenarioRequest,
     SimDigestTestRequest,
     SimDistanceRequest,
     SimFastForwardRequest,
@@ -128,3 +129,34 @@ async def sim_run_digest_test(req: SimDigestTestRequest):
         "personality_after": personality_after,
         "evolution_log": evolution_log,
     }
+
+
+# ── Desktop context simulation endpoints ──
+
+
+@router.get("/desktop-scenarios")
+async def list_desktop_scenarios():
+    """List available simulated desktop scenarios."""
+    from mock.desktop_sim import desktop_simulator
+    return {"scenarios": desktop_simulator.get_scenarios_info()}
+
+
+@router.post("/desktop-scenario")
+async def sim_desktop_scenario(req: SimDesktopScenarioRequest):
+    """Apply a pre-baked desktop context scenario (replaces Mac app)."""
+    from mock.desktop_sim import desktop_simulator
+    return desktop_simulator.apply_scenario(req.scenario)
+
+
+@router.post("/desktop-random")
+async def sim_desktop_random():
+    """Apply a random desktop scenario."""
+    from mock.desktop_sim import desktop_simulator
+    return desktop_simulator.apply_random()
+
+
+@router.delete("/desktop-context")
+async def sim_desktop_clear():
+    """Clear desktop context (simulate Mac app disconnected)."""
+    from mock.desktop_sim import desktop_simulator
+    return desktop_simulator.clear()

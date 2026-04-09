@@ -40,6 +40,15 @@ class RoomScene(str, Enum):
 
 # ---------- L0 Soul ----------
 
+class SoulEvolutionEntry(BaseModel):
+    """对话 digest 合并 user_snapshot 时的单字段变更记录。"""
+
+    timestamp: datetime = Field(default_factory=datetime.now)
+    field: str = ""  # "current_state_word" | "struggle" | "user_facts"
+    old_value: str = ""
+    new_value: str = ""
+
+
 class Soul(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     current_state_word: str = ""
@@ -47,6 +56,7 @@ class Soul(BaseModel):
     user_facts: str = ""
     bias: BiasType = BiasType.DECISIVE
     opening_response: str = "你来了。"
+    evolution_log: list[SoulEvolutionEntry] = Field(default_factory=list)
 
 
 # ---------- L1 Personality ----------
@@ -65,6 +75,10 @@ class EvolutionLogEntry(BaseModel):
     change: str = ""
     reason: str = ""
     timestamp: datetime = Field(default_factory=datetime.now)
+    event_type: str = "personality"  # "personality" | "digest" | "rule"
+    params_snapshot: Optional[dict] = None
+    summary_zh: str = ""
+    context_hint: str = ""
 
 
 class Personality(BaseModel):
@@ -112,6 +126,34 @@ class RealtimeContext(BaseModel):
     time_period: str = "morning"
     today_total_minutes: int = 0
     is_night: bool = False
+
+
+# ---------- L4 Desktop Context ----------
+
+class AppUsageRecord(BaseModel):
+    app_name: str = ""
+    bundle_id: str = ""
+    duration_minutes: float = 0.0
+    category: str = "other"
+
+
+class DesktopSnapshot(BaseModel):
+    timestamp: datetime = Field(default_factory=datetime.now)
+    frontmost_app: str = ""
+    frontmost_category: str = ""
+    window_title_hint: str = ""
+    activity_summary: str = ""
+    hourly_usage: list[AppUsageRecord] = Field(default_factory=list)
+    app_switch_count_last_hour: int = 0
+    screen_time_today_minutes: int = 0
+
+
+class DesktopContext(BaseModel):
+    updated_at: datetime = Field(default_factory=datetime.now)
+    current_snapshot: DesktopSnapshot = Field(default_factory=DesktopSnapshot)
+    daily_top_apps: list[AppUsageRecord] = Field(default_factory=list)
+    avg_daily_screen_time_minutes: int = 0
+    work_pattern: str = ""
 
 
 # ---------- Events ----------
@@ -230,6 +272,26 @@ class SimInjectChatRequest(BaseModel):
 class SimDigestTestRequest(BaseModel):
     scenarios: list[str] = Field(default_factory=lambda: ["all"])
     clear_history: bool = True
+
+
+class DesktopHeartbeatRequest(BaseModel):
+    frontmost_app: str
+    frontmost_category: str = "other"
+    bundle_id: str = ""
+
+
+class DesktopSnapshotRequest(BaseModel):
+    frontmost_app: str = ""
+    frontmost_category: str = ""
+    window_title_hint: str = ""
+    activity_summary: str = ""
+    hourly_usage: list[AppUsageRecord] = Field(default_factory=list)
+    app_switch_count_last_hour: int = 0
+    screen_time_today_minutes: int = 0
+
+
+class SimDesktopScenarioRequest(BaseModel):
+    scenario: str = "deep_focus_coding"
 
 
 class WSMessage(BaseModel):

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { SoulData, SoulInput, StatusData, PersonalityData, RoomData, NoteData, PresetData, BiasType } from '../composables/useApi'
+import type { SoulData, SoulInput, StatusData, PersonalityData, RoomData, NoteData, PresetData, BiasType, FootprintTimelineResponse } from '../composables/useApi'
 import * as api from '../composables/useApi'
 
 export const useCompanionStore = defineStore('companion', () => {
@@ -17,6 +17,23 @@ export const useCompanionStore = defineStore('companion', () => {
   const messageSending = ref(false)
   const wsConnected = ref(false)
   const presets = ref<PresetData[]>([])
+  const footprintTimeline = ref<FootprintTimelineResponse | null>(null)
+
+  /* ---- Day/Night theme ---- */
+  type ThemeMode = 'auto' | 'day' | 'night'
+  const themeMode = ref<ThemeMode>((localStorage.getItem('theme_mode') as ThemeMode) || 'auto')
+
+  const isNight = computed(() => {
+    if (themeMode.value === 'day') return false
+    if (themeMode.value === 'night') return true
+    const h = new Date().getHours()
+    return h >= 18 || h < 6
+  })
+
+  function setThemeMode(mode: ThemeMode) {
+    themeMode.value = mode
+    localStorage.setItem('theme_mode', mode)
+  }
 
   /* ---- Day/Night theme ---- */
   type ThemeMode = 'auto' | 'day' | 'night'
@@ -90,6 +107,14 @@ export const useCompanionStore = defineStore('companion', () => {
     } catch { /* ignore */ }
   }
 
+  async function loadFootprint() {
+    try {
+      footprintTimeline.value = await api.getFootprintTimeline()
+    } catch {
+      footprintTimeline.value = null
+    }
+  }
+
   async function updatePersonality(data: { bias?: BiasType; voice_style?: string }) {
     const p = await api.updatePersonality(data)
     personality.value = p
@@ -159,6 +184,7 @@ export const useCompanionStore = defineStore('companion', () => {
     messageSending,
     wsConnected,
     presets,
+    footprintTimeline,
     soulExists,
     unreadNoteCount,
     checkSoul,
@@ -168,6 +194,7 @@ export const useCompanionStore = defineStore('companion', () => {
     fetchStatus,
     fetchPersonality,
     fetchPresets,
+    loadFootprint,
     updatePersonality,
     fetchRoom,
     fetchNotes,

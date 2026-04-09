@@ -37,6 +37,30 @@ const router = createRouter({
       meta: { tab: true },
     },
     {
+      path: '/home',
+      name: 'Home',
+      component: () => import('../pages/HomePage.vue'),
+      meta: { tab: true },
+    },
+    {
+      path: '/notes',
+      name: 'Notes',
+      component: () => import('../pages/NotesPage.vue'),
+      meta: { tab: true },
+    },
+    {
+      path: '/activity',
+      name: 'Footprint',
+      component: () => import('../pages/Footprint.vue'),
+      meta: { tab: true },
+    },
+    {
+      path: '/me',
+      name: 'Me',
+      component: () => import('../pages/MePage.vue'),
+      meta: { tab: true },
+    },
+    {
       path: '/settings',
       name: 'PersonalitySettings',
       component: () => import('../pages/PersonalitySettings.vue'),

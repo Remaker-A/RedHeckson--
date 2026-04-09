@@ -17,6 +17,13 @@ const tabs = [
 const currentPath = computed(() => route.path)
 const isNight = computed(() => store.isNight)
 
+function tabActive(tabPath: string) {
+  if (tabPath === '/activity') {
+    return currentPath.value === '/activity' || currentPath.value === '/footprint'
+  }
+  return currentPath.value === tabPath
+}
+
 function iconSrc(key: string, active: boolean) {
   const mode = isNight.value ? 'night' : 'day'
   const state = active ? '-active' : ''
@@ -34,12 +41,12 @@ function go(path: string) {
       v-for="tab in tabs"
       :key="tab.path"
       class="tab-item"
-      :class="{ active: currentPath === tab.path }"
+      :class="{ active: tabActive(tab.path) }"
       @click="go(tab.path)"
     >
       <div class="icon-wrap">
         <img
-          :src="iconSrc(tab.key, currentPath === tab.path)"
+          :src="iconSrc(tab.key, tabActive(tab.path))"
           :alt="tab.label"
           class="tab-icon"
           draggable="false"
