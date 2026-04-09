@@ -1,4 +1,4 @@
-"""升级后对话冒烟：空白灵魂 + warm_humor + 入座 + 多轮 chat + digest。"""
+"""升级后对话冒烟：选择人格预设 + 入座 + 多轮 chat + digest。"""
 import asyncio
 import json
 import os
@@ -33,13 +33,42 @@ async def main() -> None:
             print("[FAIL] 无法连接:", e)
             return
 
+        presets = []
+        try:
+            pr = await c.get("/api/personality/presets")
+            presets = pr.json().get("presets", [])
+        except Exception:
+            pass
+
+        chosen_key = "warm_humor"
+        if presets:
+            print("\n请选择人格预设（直接回车默认 warm_humor）：")
+            default_idx = 0
+            for i, p in enumerate(presets):
+                tag = " (默认)" if p["key"] == "warm_humor" else ""
+                print(f"  [{i + 1}] {p['label']} - {p['short_desc']}{tag}")
+                if p["key"] == "warm_humor":
+                    default_idx = i
+            try:
+                raw = (await asyncio.to_thread(input, "\n输入编号: ")).strip()
+            except (EOFError, KeyboardInterrupt):
+                raw = ""
+            if raw.isdigit() and 1 <= int(raw) <= len(presets):
+                sel = presets[int(raw) - 1]
+            else:
+                sel = presets[default_idx]
+            chosen_key = sel["key"]
+            print(f"\n>>> 已选择: {sel['label']} - {sel['short_desc']}\n")
+        else:
+            print("[WARN] 未能获取预设列表，使用默认 warm_humor")
+
         await c.delete("/api/soul")
         r = await c.post(
             "/api/soul",
             json={
                 "current_state_word": "",
                 "struggle": "",
-                "bias": "warm_humor",
+                "bias": chosen_key,
             },
         )
         print("[init soul]", r.status_code)
@@ -48,7 +77,7 @@ async def main() -> None:
             return
 
         pj = (await c.get("/api/personality")).json()
-        print("[人格预设 warm_humor] voice_style 前200字:")
+        print(f"[人格预设 {chosen_key}] voice_style 前200字:")
         print(_preview(pj.get("voice_style") or "(空)", 220))
         print("[自然描述]", _preview(pj.get("natural_description") or "", 140))
 

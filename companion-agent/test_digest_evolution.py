@@ -3,10 +3,12 @@ Digest & Evolution 交互式演示
 =============================
 展示：注入模拟对话 → 逐轮 digest 演化 → 演化后实际聊天效果
 
-用法：
-  python test_digest_evolution.py           # 自动演示全流程
-  python test_digest_evolution.py --chat     # 跳过注入/digest，直接进入聊天
-  python test_digest_evolution.py --manual   # 手动逐步执行（每步按回车继续）
+用法（请在 RedHeckson-repo/companion-agent 目录下执行，且后端已启动）：
+  python test_digest_evolution.py            # 自动演示（默认连 http://127.0.0.1:8000）
+  python test_digest_evolution.py --chat
+  python test_digest_evolution.py --manual
+  python test_digest_evolution.py --base http://127.0.0.1:9000   # 非默认端口
+  环境变量 COMPANION_TEST_BASE 可覆盖默认地址。
 """
 
 import argparse
@@ -15,6 +17,7 @@ import json
 import os
 import sys
 import time
+from pathlib import Path
 
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -26,7 +29,14 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 
 import httpx
 
-BASE = "http://localhost:8000"
+# 默认用 127.0.0.1：Windows 上 localhost 可能先走 IPv6(::1)，而后端只绑 IPv4 时会异常慢或卡住
+_DEFAULT_BASE = "http://127.0.0.1:8000"
+# 本脚本所在目录 = companion-agent 根目录，后端在 backend/
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_BACKEND_DIR = _SCRIPT_DIR / "backend"
+# 长请求（digest / chat）用长超时；健康检查单独用短超时，避免「端口被占但不回 HTTP」时读阶段卡 3 分钟
+_HTTP_TIMEOUT = httpx.Timeout(180.0, connect=10.0)
+_PING_TIMEOUT = httpx.Timeout(5.0, connect=3.0)
 LINE = "-" * 56
 DOUBLE = "=" * 56
 
@@ -449,22 +459,48 @@ async def interactive_chat(client: httpx.AsyncClient):
             history.append({"role": "assistant", "content": d["reply"]})
 
 
+def _resolve_base_url(args_base: str | None) -> str:
+    if args_base:
+        return args_base.rstrip("/")
+    env = os.environ.get("COMPANION_TEST_BASE", "").strip()
+    if env:
+        return env.rstrip("/")
+    return _DEFAULT_BASE
+
+
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Digest & Evolution 交互式演示")
     parser.add_argument("--chat", action="store_true", help="直接进入聊天模式")
     parser.add_argument("--manual", action="store_true", help="手动模式（每步按回车）")
+    parser.add_argument(
+        "--base",
+        default=None,
+        help=f"后端根地址（默认 {_DEFAULT_BASE}，也可用环境变量 COMPANION_TEST_BASE）",
+    )
     args = parser.parse_args()
     manual = args.manual
+    base_url = _resolve_base_url(args.base)
 
-    async with httpx.AsyncClient(base_url=BASE, timeout=180.0) as c:
-        # Connectivity check
+    print(f"\n  正在检测后端 {base_url}（整次请求最多约 5 秒）...", flush=True)
+    async with httpx.AsyncClient(base_url=base_url, timeout=_HTTP_TIMEOUT) as c:
+        # Connectivity check：必须用短超时覆盖 client 的 180s，否则「TCP 已连上但不返回 body」会卡很久
         try:
-            r = await c.get("/")
+            print("  发送 GET / ...", flush=True)
+            r = await c.get("/", timeout=_PING_TIMEOUT)
+            r.raise_for_status()
             info = r.json()
-            print(f"\n  [OK] {info.get('name')} v{info.get('version')}")
+            print(f"  [OK] {info.get('name')} v{info.get('version')}", flush=True)
         except Exception as e:
-            print(f"\n  [FAIL] 无法连接后端: {e}")
-            print(f"  请先启动后端: cd companion-agent/backend && python main.py")
+            err = str(e).strip() or type(e).__name__
+            print(f"\n  [FAIL] 无法连接后端: {err}", flush=True)
+            print("  常见原因：", flush=True)
+            print("    1) 未启动后端（先 cd backend 再 python main.py）", flush=True)
+            print("    2) 端口不是 8000（可用 --base http://127.0.0.1:你的端口）", flush=True)
+            print("    3) 8000 被别的程序占用且不回 HTTP（换端口或结束占用进程）", flush=True)
+            print("  请另开一个终端执行：", flush=True)
+            print(f"    cd \"{_BACKEND_DIR}\"", flush=True)
+            print("    python main.py", flush=True)
+            print(f"  本脚本目录: {_SCRIPT_DIR}", flush=True)
             return
 
         if args.chat:

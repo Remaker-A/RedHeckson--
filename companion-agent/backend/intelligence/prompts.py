@@ -101,13 +101,22 @@ def _format_personality(l1: Optional[dict]) -> str:
     return "\n".join(parts) if parts else "你还不太了解自己。"
 
 
+_WEEKDAY_CN = {
+    1: "星期一", 2: "星期二", 3: "星期三", 4: "星期四",
+    5: "星期五", 6: "星期六", 7: "星期日",
+}
+
+
 def _format_realtime(l3: Optional[dict]) -> str:
     if not l3:
         return ""
     state = l3.get("state", "idle")
-    period = l3.get("time_period", "")
     seated = l3.get("seated_minutes", 0)
     is_night = l3.get("is_night", False)
+
+    current_time = l3.get("current_time", "")
+    current_date = l3.get("current_date", "")
+    weekday = l3.get("weekday", 0)
 
     state_desc = {
         "idle": "主人不在桌前",
@@ -119,16 +128,15 @@ def _format_realtime(l3: Optional[dict]) -> str:
     }
     parts = [f"当前状态：{state_desc.get(state, state)}"]
 
-    period_desc = {
-        "morning": "早上", "noon": "中午", "afternoon": "下午",
-        "evening": "傍晚", "late_night": "深夜",
-    }
-    if period:
-        parts.append(f"现在是{period_desc.get(period, period)}")
+    if current_date and current_time:
+        weekday_cn = _WEEKDAY_CN.get(weekday, "")
+        y, m, d = current_date.split("-")
+        time_line = f"现在是{y}年{int(m)}月{int(d)}日 {weekday_cn} {current_time}"
+        parts.append(time_line)
     if seated > 0:
         parts.append(f"主人已经坐了{seated}分钟")
     if is_night:
-        parts.append("现在是深夜")
+        parts.append("现在是深夜，注意关怀主人的作息")
     return "\n".join(parts)
 
 
@@ -150,7 +158,10 @@ def _format_rhythm(l2: Optional[dict]) -> str:
 
 def format_context_markdown_snapshot(context: dict) -> str:
     """L0–L3 可读快照 + 原始 JSON，供 soul.md 等临时存档。"""
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    l3 = context.get("L3") or {}
+    ts_date = l3.get("current_date", "")
+    ts_time = l3.get("current_time", "")
+    ts = f"{ts_date} {ts_time}" if ts_date and ts_time else datetime.now().strftime("%Y-%m-%d %H:%M")
     blocks = [
         f"*快照时间：`{ts}`（由后端根据当前 soul / personality / rhythm / 状态机生成）*",
         "",
@@ -346,5 +357,6 @@ def build_relationship_digest_prompt(messages_text: str, current_personality: di
 - 所有 *_delta 字段必须为数字；**每个** delta 的绝对值不得超过 0.1；若无依据则填 0。
 - relationship.closeness_delta 与 personality_adjustment.attachment_delta 都可表达亲近度变化；有依据时优先用 closeness_delta，避免二者重复放大同一信号。
 - quietness 越高越寡言；playfulness 越高越活泼幽默；attachment_level 表示依恋/亲近。
+- night_owl_index 表示陪伴者「习惯深夜模式」的程度（0=白天型，1=深夜型）。若对话里用户明确提到凌晨/深夜/熬夜仍在活动（如「5点还没睡」「凌晨工作」），或对话发生的时间背景是深夜，则视为证据，night_owl_delta 可酌情填正数（0.03~0.1）；否则填 0。
 - relationship.stage 用英文小写：stranger | acquaintance | friend。
 - user_snapshot 无依据则填空字符串；facts 用简短中文概括可复述的事实，不要写长传记。"""

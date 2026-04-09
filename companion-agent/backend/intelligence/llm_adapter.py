@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Optional
 
 import httpx
@@ -35,6 +36,75 @@ def _clamp_digest_delta(v) -> float:
     return x
 
 
+def _balanced_json_object(s: str) -> Optional[str]:
+    """First top-level {...} by brace depth, respecting JSON string escapes."""
+    start = s.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(start, len(s)):
+        c = s[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+            continue
+        if c == '"':
+            in_str = True
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return s[start : i + 1]
+    return None
+
+
+def _lenient_json_dict(blob: str) -> Optional[dict]:
+    """Try json.loads; then strip trailing commas before } or ]."""
+    blob = blob.strip()
+    try:
+        out = json.loads(blob)
+        return out if isinstance(out, dict) else None
+    except json.JSONDecodeError:
+        pass
+    try:
+        fixed = re.sub(r",\s*}", "}", blob)
+        fixed = re.sub(r",\s*]", "]", fixed)
+        out = json.loads(fixed)
+        return out if isinstance(out, dict) else None
+    except json.JSONDecodeError:
+        return None
+
+
+def _extract_json_object_string(raw: str) -> Optional[str]:
+    """Pull a single JSON object from model text; handles ```json ... ``` fences."""
+    s = (raw or "").strip()
+    if not s:
+        return None
+    if "```" in s:
+        best: Optional[str] = None
+        for seg in s.split("```"):
+            seg = seg.strip()
+            if not seg:
+                continue
+            low = seg.lower()
+            if low.startswith("json"):
+                seg = seg[4:].lstrip()
+            cand = _balanced_json_object(seg)
+            if cand and (best is None or len(cand) > len(best)):
+                best = cand
+        if best is not None:
+            return best
+    return _balanced_json_object(s)
+
+
 class LLMAdapter:
     def __init__(self):
         self._client: Optional[httpx.AsyncClient] = None
@@ -59,6 +129,7 @@ class LLMAdapter:
         user_content: str = "",
         max_tokens: int = 200,
         temperature: float = 0.8,
+        request_timeout: float = 30.0,
     ) -> str:
         cfg = self.provider_config
         if not self.available:
@@ -83,10 +154,15 @@ class LLMAdapter:
                 "Authorization": f"Bearer {cfg['api_key']}",
                 "Content-Type": "application/json",
             },
+            timeout=request_timeout,
         )
         resp.raise_for_status()
         data = resp.json()
-        return data["choices"][0]["message"]["content"].strip()
+        msg = data["choices"][0]["message"]
+        content = msg.get("content")
+        if content is None and isinstance(msg.get("reasoning_content"), str):
+            content = msg["reasoning_content"]
+        return (str(content) if content is not None else "").strip()
 
     async def _chat_completion_messages(
         self,
@@ -221,14 +297,30 @@ class LLMAdapter:
             result = await self._chat_completion(
                 system_prompt=system_prompt,
                 user_content="请只输出 JSON。",
-                max_tokens=600,
+                max_tokens=1024,
                 temperature=0.3,
+                request_timeout=120.0,
             )
-            start = result.find("{")
-            end = result.rfind("}") + 1
-            if start < 0 or end <= start:
+            if not result:
+                logger.warning("digest: empty model content")
                 return None
-            data = json.loads(result[start:end])
+            blob = _extract_json_object_string(result)
+            if not blob:
+                logger.warning(
+                    "digest: no JSON object in model output (preview): %s",
+                    (result or "")[:500],
+                )
+                return None
+            try:
+                data = json.loads(blob)
+            except json.JSONDecodeError:
+                data = _lenient_json_dict(blob)
+            if not data:
+                logger.warning(
+                    "digest: JSON parse failed (preview): %s",
+                    (result or "")[:500],
+                )
+                return None
             rel = data.get("relationship") or {}
             if isinstance(rel, dict) and "closeness_delta" in rel:
                 rel["closeness_delta"] = _clamp_digest_delta(rel.get("closeness_delta"))

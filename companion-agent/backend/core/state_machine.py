@@ -172,6 +172,7 @@ class StateMachine:
 
     def get_status(self) -> dict:
         self._update_ctx()
+        now = self.now
         return {
             "state": self.ctx.current_state.value,
             "state_since": self.ctx.state_since.isoformat(),
@@ -180,6 +181,9 @@ class StateMachine:
             "time_period": self.ctx.time_period,
             "is_night": self.ctx.is_night,
             "today_total_minutes": self.ctx.today_total_minutes,
+            "current_time": now.strftime("%H:%M"),
+            "current_date": now.strftime("%Y-%m-%d"),
+            "weekday": now.isoweekday(),
             "focus": {
                 "active": self.focus.active,
                 "duration_minutes": self.focus.duration_minutes,

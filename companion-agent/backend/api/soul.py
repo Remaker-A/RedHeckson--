@@ -41,6 +41,8 @@ def _resolve_voice_style(req: SoulCreateRequest) -> str:
                 detail="选择「自定义」时请填写 custom_voice_style（描述说话风格）。",
             )
         return text
+    if req.custom_voice_style and req.custom_voice_style.strip():
+        return req.custom_voice_style.strip()
     preset = get_preset(req.bias.value)
     if preset:
         return preset.voice_style
