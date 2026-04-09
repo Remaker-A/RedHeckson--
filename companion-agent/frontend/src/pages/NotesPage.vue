@@ -5,6 +5,7 @@ import { useCompanionStore } from '../stores/companion'
 
 const router = useRouter()
 const store = useCompanionStore()
+const isNight = computed(() => store.isNight)
 
 const loaded = ref(false)
 const showWrite = ref(false)
@@ -105,7 +106,7 @@ function selectMood(mood: string) {
 </script>
 
 <template>
-  <div class="notes-page">
+  <div class="notes-page" :class="{ night: isNight }">
     <header class="notes-header">
       <h1 class="notes-title">纸条</h1>
       <button
@@ -113,7 +114,7 @@ function selectMood(mood: string) {
         :disabled="store.generatingNote"
         @click="requestNewNote"
       >
-        {{ store.generatingNote ? '它在想...' : '让它写一张' }}
+        {{ store.generatingNote ? '蓬蓬在想...' : '让蓬蓬写一张' }}
       </button>
     </header>
 
@@ -121,7 +122,7 @@ function selectMood(mood: string) {
       <!-- Empty state -->
       <div v-if="displayNotes.length === 0" class="empty-state">
         <div class="empty-icon">📄</div>
-        <p class="empty-text">帐篷里还没有纸条</p>
+        <p class="empty-text">蓬蓬还没写纸条</p>
         <p class="empty-sub">它可能还在想要对你说什么</p>
       </div>
 
@@ -137,7 +138,7 @@ function selectMood(mood: string) {
           <div class="note-pin">📌</div>
           <div class="note-date">{{ note.date }} {{ note.time }}</div>
           <p class="note-content">"{{ note.content }}"</p>
-          <p v-if="note.author === 'agent'" class="note-sign">── 帐篷里的那个家伙</p>
+          <p v-if="note.author === 'agent'" class="note-sign">── 蓬蓬</p>
           <span v-if="!store.readNoteIds.has(note.id)" class="note-unread" />
         </div>
       </div>
@@ -159,11 +160,11 @@ function selectMood(mood: string) {
           <Transition name="fade" mode="out-in">
             <div v-if="sentFeedback" key="sent" class="sent-feedback">
               <div class="sent-check">✓</div>
-              <p>它收到了</p>
+              <p>蓬蓬收到了</p>
             </div>
 
             <div v-else key="form" class="write-form">
-              <p class="write-title">贴一张便签给它</p>
+              <p class="write-title">贴一张便签给蓬蓬</p>
 
               <!-- Mood selector -->
               <div class="mood-row">
@@ -212,9 +213,13 @@ function selectMood(mood: string) {
 <style scoped>
 .notes-page {
   min-height: 100dvh;
-  background: var(--bg-dark);
+  background: #f5f0eb;
   display: flex;
   flex-direction: column;
+  transition: background 0.8s ease;
+}
+.notes-page.night {
+  background: var(--bg-dark);
 }
 
 /* ═══════ Header ═══════ */
@@ -225,26 +230,39 @@ function selectMood(mood: string) {
   align-items: center;
   justify-content: space-between;
   padding: max(16px, env(safe-area-inset-top, 16px)) 20px 12px;
-  background: var(--bg-dark);
+  background: #f5f0eb;
   z-index: 10;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  transition: background 0.8s ease, border-color 0.8s ease;
+}
+.notes-page.night .notes-header {
+  background: var(--bg-dark);
+  border-bottom-color: rgba(255, 255, 255, 0.04);
 }
 .notes-title {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-family: var(--font-body);
+  font-size: 1.2rem;
   font-weight: 400;
-  color: var(--text-light);
+  color: var(--text-warm);
   letter-spacing: 0.04em;
+}
+.notes-page.night .notes-title {
+  color: var(--text-light);
 }
 .gen-btn {
   font-size: 0.75rem;
   padding: 6px 14px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(232, 160, 76, 0.3);
-  color: var(--accent-warm);
-  background: var(--accent-warm-dim);
+  border: 1px solid rgba(180, 140, 80, 0.3);
+  color: #8a6d3b;
+  background: rgba(232, 160, 76, 0.1);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out-expo);
+}
+.notes-page.night .gen-btn {
+  border-color: rgba(232, 160, 76, 0.3);
+  color: var(--accent-warm);
+  background: var(--accent-warm-dim);
 }
 .gen-btn:hover:not(:disabled) {
   background: rgba(232, 160, 76, 0.2);
@@ -271,8 +289,9 @@ function selectMood(mood: string) {
   gap: var(--space-sm);
 }
 .empty-icon { font-size: 2.5rem; opacity: 0.4; }
-.empty-text { font-size: 0.95rem; color: var(--text-light); opacity: 0.6; }
+.empty-text { font-size: 0.95rem; color: var(--text-warm); opacity: 0.6; }
 .empty-sub { font-size: 0.8rem; color: var(--text-muted); opacity: 0.5; }
+.notes-page.night .empty-text { color: var(--text-light); }
 
 /* ═══════ Notes list ═══════ */
 .notes-list {
@@ -367,12 +386,18 @@ function selectMood(mood: string) {
   padding: 10px 28px;
   font-size: 0.88rem;
   border-radius: var(--radius-full);
-  background: var(--bg-darker);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--text-light);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: var(--text-warm);
   cursor: pointer;
   backdrop-filter: blur(12px);
   transition: all var(--duration-fast) var(--ease-out-expo);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+.notes-page.night .write-btn {
+  background: var(--bg-darker);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-light);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 .write-btn:hover {
@@ -384,20 +409,27 @@ function selectMood(mood: string) {
 .write-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   z-index: 200;
 }
+.notes-page.night .write-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
 .write-panel {
   width: 100%;
   max-width: 440px;
-  background: var(--bg-dark);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #f5f0eb;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-bottom: none;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: var(--space-md) var(--space-lg) var(--space-xl);
+}
+.notes-page.night .write-panel {
+  background: var(--bg-dark);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 .panel-handle {
   width: 40px;
@@ -409,19 +441,21 @@ function selectMood(mood: string) {
 
 .write-title {
   font-size: 1rem;
-  color: var(--text-light);
+  color: var(--text-warm);
   text-align: center;
   margin-bottom: var(--space-md);
   letter-spacing: 0.04em;
 }
+.notes-page.night .write-title {
+  color: var(--text-light);
+}
 
-/* ═══════ Mood row ═══════ */
+/* ═══════ Mood grid ═══════ */
 .mood-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  overflow-x: auto;
   padding-bottom: var(--space-md);
-  -webkit-overflow-scrolling: touch;
 }
 .mood-chip {
   display: flex;
@@ -429,14 +463,16 @@ function selectMood(mood: string) {
   gap: 4px;
   padding: 6px 12px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.03);
   color: var(--text-muted);
-  font-size: 0.75rem;
-  white-space: nowrap;
+  font-size: 12px;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out-expo);
-  flex-shrink: 0;
+}
+.notes-page.night .mood-chip {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
 }
 .mood-chip.active {
   border-color: var(--accent-warm);
@@ -447,24 +483,31 @@ function selectMood(mood: string) {
 
 /* ═══════ Note paper input ═══════ */
 .note-paper-input {
-  background: rgba(242, 232, 213, 0.05);
-  border: 1px solid rgba(242, 232, 213, 0.1);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-md);
   padding: 2px;
+}
+.notes-page.night .note-paper-input {
+  background: rgba(242, 232, 213, 0.05);
+  border-color: rgba(242, 232, 213, 0.1);
 }
 .note-textarea {
   width: 100%;
   padding: var(--space-md);
-  font-size: 0.92rem;
+  font-size: 14px;
   line-height: 1.8;
-  color: var(--bg-cream);
+  color: var(--text-warm);
   background: transparent;
   border: none;
   resize: none;
 }
+.notes-page.night .note-textarea {
+  color: var(--bg-cream);
+}
 .note-textarea::placeholder {
   color: var(--text-muted);
-  opacity: 0.4;
+  opacity: 0.5;
 }
 
 /* ═══════ Actions ═══════ */
@@ -475,13 +518,13 @@ function selectMood(mood: string) {
   margin-top: var(--space-md);
 }
 .cancel-btn {
-  font-size: 0.85rem;
+  font-size: 14px;
   color: var(--text-muted);
   padding: var(--space-sm) var(--space-md);
   cursor: pointer;
 }
 .submit-btn {
-  font-size: 0.85rem;
+  font-size: 14px;
   padding: var(--space-sm) var(--space-xl);
   border-radius: var(--radius-full);
   border: 1px solid var(--accent-warm);
@@ -525,16 +568,18 @@ function selectMood(mood: string) {
 .tab-spacer { height: 80px; flex-shrink: 0; }
 
 /* ═══════ Slide-up ═══════ */
-.slide-up-enter-active,
+.slide-up-enter-active {
+  transition: transform 0.4s var(--ease-out-expo), opacity 0.3s ease;
+}
 .slide-up-leave-active {
-  transition: all var(--duration-slow) var(--ease-out-expo);
+  transition: transform 0.3s ease, opacity 0.2s ease;
 }
 .slide-up-enter-from {
   opacity: 0;
-  transform: translateY(100%);
+  transform: translateY(40%);
 }
 .slide-up-leave-to {
   opacity: 0;
-  transform: translateY(60%);
+  transform: translateY(30%);
 }
 </style>

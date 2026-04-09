@@ -8,12 +8,20 @@ const router = useRouter()
 const store = useCompanionStore()
 
 const tabs = [
-  { path: '/home', label: '帐篷', icon: '🏕️' },
-  { path: '/notes', label: '纸条', icon: '📄' },
-  { path: '/me', label: '我的', icon: '👤' },
+  { path: '/home',     label: '帐篷', key: 'home' },
+  { path: '/notes',    label: '纸条', key: 'notes' },
+  { path: '/activity', label: '动态', key: 'activity' },
+  { path: '/me',       label: '我的', key: 'me' },
 ]
 
 const currentPath = computed(() => route.path)
+const isNight = computed(() => store.isNight)
+
+function iconSrc(key: string, active: boolean) {
+  const mode = isNight.value ? 'night' : 'day'
+  const state = active ? '-active' : ''
+  return `/assets/icons/tab-${key}-${mode}${state}.png`
+}
 
 function go(path: string) {
   if (currentPath.value !== path) router.push(path)
@@ -21,108 +29,112 @@ function go(path: string) {
 </script>
 
 <template>
-  <div class="tab-bar-wrap">
-    <nav class="tab-bar-glass">
-      <button
-        v-for="tab in tabs"
-        :key="tab.path"
-        class="tab-item"
-        :class="{ active: currentPath === tab.path }"
-        @click="go(tab.path)"
-      >
-        <span class="tab-icon">{{ tab.icon }}</span>
-        <span v-if="tab.path === '/notes' && store.unreadNoteCount > 0" class="tab-badge">{{ store.unreadNoteCount }}</span>
-        <span class="tab-label">{{ tab.label }}</span>
-      </button>
-    </nav>
-  </div>
+  <nav class="tab-bar" :class="{ night: isNight }">
+    <button
+      v-for="tab in tabs"
+      :key="tab.path"
+      class="tab-item"
+      :class="{ active: currentPath === tab.path }"
+      @click="go(tab.path)"
+    >
+      <div class="icon-wrap">
+        <img
+          :src="iconSrc(tab.key, currentPath === tab.path)"
+          :alt="tab.label"
+          class="tab-icon"
+          draggable="false"
+        />
+        <span v-if="tab.path === '/notes' && store.unreadNoteCount > 0" class="tab-badge">
+          {{ store.unreadNoteCount }}
+        </span>
+      </div>
+      <span class="tab-label">{{ tab.label }}</span>
+    </button>
+  </nav>
 </template>
 
 <style scoped>
-/* ═══════ Liquid Glass Tab Bar ═══════ */
-.tab-bar-wrap {
+.tab-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  display: flex;
-  justify-content: center;
-  padding: 12px 24px calc(env(safe-area-inset-bottom, 8px) + 8px);
   z-index: 100;
-  pointer-events: none;
-}
-
-.tab-bar-glass {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  width: 100%;
-  max-width: 360px;
-  height: 56px;
-  border-radius: 28px;
-  /* Liquid glass effect */
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
-  pointer-events: auto;
+  height: calc(88px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: #ede2c8;
+  border-top: none;
+  transition: background 0.6s ease;
+}
+.tab-bar.night {
+  background: #1b2540;
 }
 
 .tab-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 6px 24px;
-  border-radius: 20px;
-  transition: all var(--duration-fast) var(--ease-out-expo);
-  position: relative;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  height: 100%;
   background: none;
   border: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0 0 4px;
 }
 
-.tab-item.active {
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+.icon-wrap {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tab-icon {
-  font-size: 1.3rem;
-  line-height: 1;
-  filter: grayscale(0.7) opacity(0.5);
-  transition: filter var(--duration-normal) var(--ease-out-expo);
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.2s var(--ease-out-expo);
 }
-
-.tab-item.active .tab-icon {
-  filter: grayscale(0) opacity(1);
+.tab-item:active .tab-icon {
+  transform: scale(0.93);
 }
 
 .tab-label {
-  font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.45);
-  letter-spacing: 0.06em;
-  transition: color var(--duration-normal) var(--ease-out-expo);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: rgba(100, 85, 65, 0.5);
+  transition: color 0.3s ease;
+  line-height: 1;
 }
-
 .tab-item.active .tab-label {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(80, 60, 40, 0.9);
+}
+.tab-bar.night .tab-label {
+  color: rgba(160, 155, 175, 0.5);
+}
+.tab-bar.night .tab-item.active .tab-label {
+  color: rgba(230, 215, 185, 0.9);
 }
 
 .tab-badge {
   position: absolute;
-  top: 2px;
-  right: 16px;
+  top: 4px;
+  right: 4px;
   min-width: 16px;
   height: 16px;
   border-radius: 8px;
-  background: var(--accent-warm);
-  color: var(--bg-darker);
-  font-size: 0.6rem;
+  background: #e89040;
+  color: #fff;
+  font-size: 0.55rem;
   font-weight: 600;
   display: flex;
   align-items: center;

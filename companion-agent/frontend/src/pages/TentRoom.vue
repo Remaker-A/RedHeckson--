@@ -444,7 +444,7 @@ function selectMood(mood: string) {
 
           <p class="note-detail-date">{{ formatDate(activeNote.created_at) }} {{ formatTime(activeNote.created_at) }}</p>
           <p class="note-detail-content">"{{ activeNote.content }}"</p>
-          <p class="note-detail-sign">── 来自帐篷里的那个家伙</p>
+          <p class="note-detail-sign">── 来自蓬蓬</p>
 
           <button class="note-detail-close" @click="showNoteDetail = false">收起</button>
         </div>

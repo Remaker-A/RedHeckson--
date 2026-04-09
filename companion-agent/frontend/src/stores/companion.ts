@@ -18,6 +18,22 @@ export const useCompanionStore = defineStore('companion', () => {
   const wsConnected = ref(false)
   const presets = ref<PresetData[]>([])
 
+  /* ---- Day/Night theme ---- */
+  type ThemeMode = 'auto' | 'day' | 'night'
+  const themeMode = ref<ThemeMode>((localStorage.getItem('theme_mode') as ThemeMode) || 'auto')
+
+  const isNight = computed(() => {
+    if (themeMode.value === 'day') return false
+    if (themeMode.value === 'night') return true
+    const h = new Date().getHours()
+    return h >= 18 || h < 6
+  })
+
+  function setThemeMode(mode: ThemeMode) {
+    themeMode.value = mode
+    localStorage.setItem('theme_mode', mode)
+  }
+
   const soulExists = computed(() => soul.value !== null)
 
   const unreadNoteCount = computed(() =>
@@ -162,5 +178,8 @@ export const useCompanionStore = defineStore('companion', () => {
     setSayLine,
     clearSayLine,
     setWsConnected,
+    themeMode,
+    isNight,
+    setThemeMode,
   }
 })

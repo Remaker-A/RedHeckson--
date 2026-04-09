@@ -25,6 +25,12 @@ const router = createRouter({
       meta: { tab: true },
     },
     {
+      path: '/activity',
+      name: 'Activity',
+      component: () => import('../pages/ActivityPage.vue'),
+      meta: { tab: true },
+    },
+    {
       path: '/me',
       name: 'Me',
       component: () => import('../pages/MePage.vue'),

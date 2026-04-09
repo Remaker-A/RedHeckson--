@@ -61,10 +61,14 @@ html {
 body {
   font-family: var(--font-body);
   font-weight: 300;
-  background: var(--bg-dark);
-  color: var(--text-light);
+  background: #f5f0eb;
+  color: var(--text-warm);
   min-height: 100dvh;
   overflow-x: hidden;
+}
+body.night {
+  background: var(--bg-dark);
+  color: var(--text-light);
 }
 
 input,
